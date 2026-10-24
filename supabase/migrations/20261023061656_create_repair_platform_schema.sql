@@ -209,11 +209,10 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE ON profiles TO authenticated;
-GRANT SELECT ON profiles TO anon;
 
-DROP POLICY IF EXISTS "public_read_profiles" ON profiles;
-CREATE POLICY "public_read_profiles" ON profiles FOR SELECT
-  TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "own_profile_select" ON profiles;
+CREATE POLICY "own_profile_select" ON profiles FOR SELECT
+  TO authenticated USING (auth.uid() = id);
 
 DROP POLICY IF EXISTS "insert_own_profile" ON profiles;
 CREATE POLICY "insert_own_profile" ON profiles FOR INSERT
@@ -222,3 +221,4 @@ CREATE POLICY "insert_own_profile" ON profiles FOR INSERT
 DROP POLICY IF EXISTS "update_own_profile" ON profiles;
 CREATE POLICY "update_own_profile" ON profiles FOR UPDATE
   TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
