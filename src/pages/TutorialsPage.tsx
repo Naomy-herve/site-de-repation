@@ -4,6 +4,7 @@ import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import supabase from '@/lib/supabase';
 import type { Tutorial, Category, Difficulty } from '@/lib/types';
 import { sanitizeSearch } from '@/lib/format';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import TutorialCard from '@/components/TutorialCard';
 import Spinner from '@/components/Spinner';
 
@@ -18,6 +19,9 @@ export default function TutorialsPage() {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'views');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Débounce : la requête Supabase part 350 ms après la dernière frappe
+  const debouncedQuery = useDebouncedValue(query, 350);
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('categories').select('*').order('display_order');
@@ -28,7 +32,7 @@ export default function TutorialsPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const safeQuery = sanitizeSearch(query);
+      const safeQuery = sanitizeSearch(debouncedQuery);
       let q = supabase.from('tutorials').select('*, category:categories(*), device:devices(*)').eq('published', true);
       if (safeQuery) q = q.or(`title.ilike.%${safeQuery}%,summary.ilike.%${safeQuery}%`);
       if (selectedCat) q = q.eq('category_id', selectedCat);
@@ -40,7 +44,7 @@ export default function TutorialsPage() {
       setTutorials(data as Tutorial[] || []);
       setLoading(false);
     })();
-  }, [query, selectedCat, difficulty, sortBy]);
+  }, [debouncedQuery, selectedCat, difficulty, sortBy]);
 
   const updateSearch = (val: string) => {
     setQuery(val);
