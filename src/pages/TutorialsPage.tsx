@@ -5,6 +5,7 @@ import supabase from '@/lib/supabase';
 import type { Tutorial, Category, Difficulty } from '@/lib/types';
 import { sanitizeSearch } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import Reveal from '@/components/Reveal';
 import TutorialCard from '@/components/TutorialCard';
 import Spinner from '@/components/Spinner';
 
@@ -59,6 +60,9 @@ export default function TutorialsPage() {
     <div className="pt-16 min-h-screen bg-slate-50">
       <div className="bg-white border-b border-slate-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-primary-600 mb-2">
+            {'// '}63 548 TUTORIELS GRATUITS
+          </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">Tutoriels de réparation</h1>
           <p className="mt-2 text-slate-500">Explorez plus de 63 000 guides de réparation gratuits</p>
           <div className="mt-6 relative max-w-2xl">
@@ -90,7 +94,7 @@ export default function TutorialsPage() {
 
             <div className={`space-y-6 ${showFilters ? 'block' : 'hidden lg:block'}`}>
               <div className="bg-white rounded-2xl p-5 border border-slate-200/80">
-                <h3 className="font-display font-semibold text-slate-900 text-sm mb-3">Catégorie</h3>
+                <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-3">Catégorie</h3>
                 <div className="space-y-1">
                   <button
                     onClick={() => setSelectedCat('')}
@@ -111,7 +115,7 @@ export default function TutorialsPage() {
               </div>
 
               <div className="bg-white rounded-2xl p-5 border border-slate-200/80">
-                <h3 className="font-display font-semibold text-slate-900 text-sm mb-3">Difficulté</h3>
+                <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-3">Difficulté</h3>
                 <div className="space-y-1">
                   {difficulties.map((d) => (
                     <button
@@ -154,8 +158,10 @@ export default function TutorialsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {tutorials.map((t) => (
-                  <TutorialCard key={t.id} tutorial={t} />
+                {tutorials.map((t, i) => (
+                  <Reveal key={t.id} delay={Math.min(i * 60, 480)}>
+                    <TutorialCard tutorial={t} />
+                  </Reveal>
                 ))}
               </div>
             )}
