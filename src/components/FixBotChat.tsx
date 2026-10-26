@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, Trash2 } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, Trash2, Sparkles } from 'lucide-react';
+import supabase from '@/lib/supabase';
 import type { FixbotMessage } from '@/lib/types';
 
 const SESSION_KEY = 'flam_fixbot_session';
@@ -11,7 +12,8 @@ const suggestions = [
   'Mon lave-linge ne vidange plus',
 ];
 
-function generateReply(userMessage: string): string {
+// ====== Repli local (fallback) si l'IA est indisponible ======
+function generateFallbackReply(userMessage: string): string {
   const msg = userMessage.toLowerCase();
   if (msg.includes('batterie') && (msg.includes('iphone') || msg.includes('13'))) {
     return 'Pour remplacer la batterie d\'un iPhone 13 : 1) Retirez les vis pentalobe en bas, 2) Chauffez et ouvrez l\'écran, 3) Débranchez la batterie, 4) Retirez les adhésifs, 5) Installez la nouvelle batterie. Consultez le tutoriel complet sur notre page dédiée. Vous aurez besoin d\'un kit batterie (39,90 €) et d\'outils de précision.';
@@ -31,12 +33,20 @@ function generateReply(userMessage: string): string {
   return 'Je suis FixBot, votre assistant réparation ! Décrivez votre problème et je vous suggérerai des tutoriels, pièces et outils. Vous pouvez aussi consulter notre catalogue de 63 548 tutoriels gratuits ou chercher dans la boutique les pièces dont vous avez besoin.';
 }
 
+// ====== Appel à l'Edge Function IA ======
+async function fetchAiReply(history: { role: 'user' | 'assistant'; content: string }[]): Promise<string> {
+  const { data } = await supabase.functions.invoke('fixbot-ai', { body: { messages: history } });
+  if (data && typeof data.reply === 'string') return data.reply;
+  throw new Error('Réponse IA indisponible');
+}
+
 export default function FixBotChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<FixbotMessage[]>([]);
   const [input, setInput] = useState('');
   const [consented, setConsented] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [aiMode, setAiMode] = useState<boolean | null>(null); // null = inconnu
   const [sessionId, setSessionId] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +69,7 @@ export default function FixBotChat() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !consented) return;
+    if (!input.trim() || !consented || loading) return;
     const userMsg = input.trim();
     setInput('');
     setLoading(true);
@@ -76,26 +86,43 @@ export default function FixBotChat() {
       message: userMsg,
       created_at: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
 
-    setTimeout(() => {
-      const reply = generateReply(userMsg);
-      const assistantMessage: FixbotMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        message: reply,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setLoading(false);
-    }, 800);
+    // Historique au format IA : garde le contexte de la conversation
+    const history = nextMessages.slice(-20).map((m) => ({
+      role: m.role,
+      content: m.message,
+    }));
+
+    let reply: string;
+    let usedAi = false;
+    try {
+      // 1) Tentative IA via Edge Function (timeout 25 s)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 25_000)
+      );
+      reply = await Promise.race([fetchAiReply(history), timeoutPromise]);
+      usedAi = true;
+    } catch {
+      // 2) Repli local : réponse instantanée, jamais d'erreur visible
+      reply = generateFallbackReply(userMsg);
+    }
+
+    setAiMode(usedAi);
+    const assistantMessage: FixbotMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      message: reply,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+    setLoading(false);
   };
 
-  // Les messages ne sont pas persistés côté serveur : la suppression
-  // est purement locale (le code supabase était mort — les messages
-  // ne sont jamais insérés dans fixbot_conversations).
   const handleDeleteConversation = () => {
     setMessages([]);
+    setAiMode(null);
     localStorage.removeItem(SESSION_KEY);
     setSessionId('');
   };
@@ -106,6 +133,7 @@ export default function FixBotChat() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
+          aria-label="Ouvrir l'assistant FixBot"
           className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-primary-600 px-5 py-3.5 text-sm font-semibold text-white shadow-xl hover:bg-primary-700 hover:shadow-2xl transition-all active:scale-95"
         >
           <MessageSquare className="w-5 h-5" />
@@ -126,16 +154,22 @@ export default function FixBotChat() {
                 </div>
                 <div>
                   <h3 className="font-display font-semibold text-white text-sm">FixBot</h3>
-                  <p className="text-xs text-primary-200">Assistant réparation IA</p>
+                  <p className="text-xs text-primary-200 flex items-center gap-1">
+                    {aiMode === null ? 'Assistant réparation IA' : aiMode ? (
+                      <><Sparkles className="w-3 h-3" /> Assistant IA connecté</>
+                    ) : (
+                      'Assistant (mode simplifié)'
+                    )}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 {messages.length > 0 && consented && (
-                  <button onClick={handleDeleteConversation} title="Supprimer la conversation" className="p-2 rounded-lg text-primary-200 hover:bg-white/10 transition-colors">
+                  <button onClick={handleDeleteConversation} title="Supprimer la conversation" aria-label="Supprimer la conversation" className="p-2 rounded-lg text-primary-200 hover:bg-white/10 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                <button onClick={() => setOpen(false)} className="p-2 rounded-lg text-primary-200 hover:bg-white/10 transition-colors">
+                <button onClick={() => setOpen(false)} aria-label="Fermer le chat" className="p-2 rounded-lg text-primary-200 hover:bg-white/10 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -148,7 +182,7 @@ export default function FixBotChat() {
                   <Bot className="w-12 h-12 text-primary-300 mx-auto mb-3" />
                   <h4 className="font-display font-semibold text-slate-900 text-sm">Bienvenue, je suis FixBot</h4>
                   <p className="mt-2 text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-                    Je peux vous aider à diagnostiquer vos pannes et trouver des tutoriels et pièces. Vos conversations sont privées et supprimables à tout moment.
+                    Assistant IA expert en réparation. Décrivez votre panne : je diagnostique, je propose un plan et je vous oriente vers les bons tutoriels et pièces. Vos conversations sont privées et supprimables à tout moment.
                   </p>
                   <button onClick={handleConsent} className="mt-4 btn-primary py-2 px-4 text-xs">
                     Accepter et discuter
@@ -207,9 +241,10 @@ export default function FixBotChat() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Décrivez votre problème..."
+                    aria-label="Votre message"
                     className="flex-1 rounded-full bg-slate-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-300"
                   />
-                  <button type="submit" disabled={!input.trim()} className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white hover:bg-primary-700 disabled:opacity-40 transition-colors shrink-0">
+                  <button type="submit" disabled={!input.trim() || loading} className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white hover:bg-primary-700 disabled:opacity-40 transition-colors shrink-0" aria-label="Envoyer">
                     <Send className="w-4 h-4" />
                   </button>
                 </form>
