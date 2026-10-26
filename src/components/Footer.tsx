@@ -90,11 +90,11 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-6">
             <Link to="/conditions" className="text-xs text-slate-500 hover:text-primary-400 transition-colors">Conditions d'utilisation</Link>
-            <Link to="/confidentialite" className="text-xs text-slate-500 hover:text-primary-400 transition-colors">Conditions d'utilisation</Link>
+            <Link to="/confidentialite" className="text-xs text-slate-500 hover:text-primary-400 transition-colors">Confidentialité</Link>
             <a href="mailto:contact@flameofreparation.com" className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-primary-400 transition-colors">
               <Mail className="w-3.5 h-3.5" />
               Contact
-            </Link>
+            </a>
           </div>
         </div>
       </div>
