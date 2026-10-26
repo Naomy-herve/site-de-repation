@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 import supabase from '@/lib/supabase';
 import type { Tutorial, Category, Difficulty } from '@/lib/types';
+import { sanitizeSearch } from '@/lib/format';
 import TutorialCard from '@/components/TutorialCard';
 import Spinner from '@/components/Spinner';
 
@@ -27,8 +28,9 @@ export default function TutorialsPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      const safeQuery = sanitizeSearch(query);
       let q = supabase.from('tutorials').select('*, category:categories(*), device:devices(*)').eq('published', true);
-      if (query) q = q.or(`title.ilike.%${query}%,summary.ilike.%${query}%`);
+      if (safeQuery) q = q.or(`title.ilike.%${safeQuery}%,summary.ilike.%${safeQuery}%`);
       if (selectedCat) q = q.eq('category_id', selectedCat);
       if (difficulty) q = q.eq('difficulty', difficulty);
       if (sortBy === 'views') q = q.order('views', { ascending: false });
