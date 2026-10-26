@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, ChevronRight, Wrench } from 'lucide-react';
 import supabase from '@/lib/supabase';
-import type { Device, Category, Tutorial } from '@/lib/types';
-import { difficultyColor, timeLabel, formatNumber } from '@/lib/format';
-import CategoryGrid from '@/components/CategoryGrid';
+import type { Device, Category } from '@/lib/types';
+import { sanitizeSearch } from '@/lib/format';
 import Spinner from '@/components/Spinner';
 
 export default function DevicesPage() {
@@ -19,12 +18,8 @@ export default function DevicesPage() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: cats }, { data: devs }] = await Promise.all([
-        supabase.from('categories').select('*').order('display_order'),
-        supabase.from('devices').select('*, category:categories(*)').order('name'),
-      ]);
+      const { data: cats } = await supabase.from('categories').select('*').order('display_order');
       setCategories(cats as Category[] || []);
-      setDevices(devs as Device[] || []);
     })();
   }, []);
 
@@ -38,9 +33,10 @@ export default function DevicesPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      const safeQuery = sanitizeSearch(query);
       let q = supabase.from('devices').select('*, category:categories(*)');
       if (activeCat) q = q.eq('category_id', activeCat);
-      if (query) q = q.or(`name.ilike.%${query}%,manufacturer.ilike.%${query}%`);
+      if (safeQuery) q = q.or(`name.ilike.%${safeQuery}%,manufacturer.ilike.%${safeQuery}%`);
       const { data } = await q.order('name');
       const filtered = (data as Device[]) || [];
       setDevices(filtered);

@@ -32,3 +32,12 @@ export function difficultyColor(d: string): string {
     default: return 'bg-slate-100 text-slate-700';
   }
 }
+
+/**
+ * Nettoie une saisie utilisateur avant de l'insérer dans un filtre
+ * .or() PostgREST. Sans ceci, les caractères , ( ) % . * * cassent la
+ * requête Supabase (erreur 400) ou permettent une injection de filtre.
+ */
+export function sanitizeSearch(q: string): string {
+  return q.replace(/[,()%\\.*]/g, ' ').replace(/\s+/g, ' ').trim();
+}

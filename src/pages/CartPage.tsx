@@ -103,8 +103,12 @@ export default function CartPage() {
                   {formatPrice(totalPrice + (totalPrice >= 50 ? 0 : 4.90))}
                 </span>
               </div>
-              <button className="w-full btn-primary mt-5 py-3.5">
-                <CheckCircle2 className="w-4 h-4" /> Passer commande
+              <button
+                disabled
+                title="Le paiement en ligne arrivera bientôt"
+                className="w-full btn-primary mt-5 py-3.5 opacity-60 cursor-not-allowed"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Passer commande (bientôt)
               </button>
 
               <div className="mt-5 space-y-2">

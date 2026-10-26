@@ -4,6 +4,7 @@ import { Star, ShoppingBag, ChevronRight, CheckCircle2, Truck, Shield, ArrowLeft
 import supabase from '@/lib/supabase';
 import type { Product, ProductCategory } from '@/lib/types';
 import { formatPrice } from '@/lib/format';
+import { useCart } from '@/lib/cart';
 import ProductCard from '@/components/ProductCard';
 import Spinner from '@/components/Spinner';
 
@@ -19,11 +20,15 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     (async () => {
       if (!slug) return;
       setLoading(true);
+      setQty(1);
+      setAdded(false);
       const { data: prod } = await supabase.from('products').select('*').eq('slug', slug).maybeSingle();
       setProduct(prod as Product | null);
       if (prod) {
@@ -120,10 +125,15 @@ export default function ProductDetailPage() {
                 </button>
               </div>
               <button
+                onClick={() => {
+                  addToCart(product, qty);
+                  setAdded(true);
+                  setTimeout(() => setAdded(false), 1500);
+                }}
                 disabled={product.stock === 0}
                 className="flex-1 btn-primary py-3 disabled:cursor-not-allowed"
               >
-                <ShoppingBag className="w-4 h-4" /> Ajouter au panier
+                <ShoppingBag className="w-4 h-4" /> {added ? 'Ajouté ✓' : 'Ajouter au panier'}
               </button>
             </div>
 

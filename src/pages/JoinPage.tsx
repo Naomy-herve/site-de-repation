@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Wrench, Mail, Lock, User, ArrowRight, CheckCircle2, Users, BookOpen, Award } from 'lucide-react';
 import supabase from '@/lib/supabase';
 
 export default function JoinPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'signup' | 'login'>('signup');
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<'signup' | 'login'>(
+    searchParams.get('mode') === 'login' ? 'login' : 'signup'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -32,18 +35,35 @@ export default function JoinPage() {
           setLoading(false);
           return;
         }
+        // Le username est passé en métadonnées : le trigger SQL
+        // on_auth_user_created le récupère via raw_user_meta_data->>'username'
+        // pour créer la ligne profiles automatiquement.
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: { data: { username } },
         });
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          await supabase.from('profiles').insert({
+          // Filet de sécurité : si le trigger SQL n'est pas encore installé,
+          // on crée le profil côté client. upsert + onConflict id : pas
+          // d'erreur de doublon si le trigger a déjà créé la ligne.
+          const { error: profErr } = await supabase.from('profiles').upsert({
             id: data.user.id,
             username,
             display_name: username,
-          });
+          }, { onConflict: 'id', ignoreDuplicates: true });
+          if (profErr) {
+            // Le compte auth existe mais le profil n'a pas été créé
+            // (RLS, username dupliqué, etc.). On signale l'erreur et on
+            // nettoie la session pour éviter un état incohérent.
+            console.error('Création du profil échouée :', profErr.message);
+            await supabase.auth.signOut();
+            throw new Error(
+              'Compte créé, mais la création du profil a échoué (' + profErr.message + '). Réessayez ou contactez le support.'
+            );
+          }
         }
         setSuccess('Compte créé avec succès ! Vous pouvez maintenant vous connecter.');
         setMode('login');

@@ -14,19 +14,23 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  // Initialisation synchrone : évite que l'effet de sauvegarde n'écrase
+  // le panier localStorage avec [] avant sa restauration (race condition).
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('flam_cart');
+      return stored ? (JSON.parse(stored) as CartItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('flam_cart');
-      if (stored) setItems(JSON.parse(stored));
+      localStorage.setItem('flam_cart', JSON.stringify(items));
     } catch {
-      // ignore
+      // ignore (ex. mode privé, quota dépassé)
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('flam_cart', JSON.stringify(items));
   }, [items]);
 
   const addToCart = (product: Product, qty = 1) => {

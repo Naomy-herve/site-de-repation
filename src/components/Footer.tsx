@@ -17,9 +17,9 @@ export default function Footer() {
     ],
     'À propos': [
       { to: '/blog', label: 'Blog & actualités' },
-      { to: '/blog/droit-reparation-2026', label: 'Droit à la réparation' },
       { to: '/guide-creation', label: 'Créer un tutoriel' },
-      { to: '/aide', label: 'Aide & FAQ' },
+      { to: '/conditions', label: 'Conditions d\'utilisation' },
+      { to: '/confidentialite', label: 'Confidentialité' },
     ],
   };
 

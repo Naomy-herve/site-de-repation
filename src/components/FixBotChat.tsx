@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, Trash2, ChevronDown } from 'lucide-react';
-import supabase from '@/lib/supabase';
+import { MessageSquare, X, Send, Bot, Trash2 } from 'lucide-react';
 import type { FixbotMessage } from '@/lib/types';
 
 const SESSION_KEY = 'flam_fixbot_session';
@@ -92,14 +91,11 @@ export default function FixBotChat() {
     }, 800);
   };
 
-  const handleDeleteConversation = async () => {
+  // Les messages ne sont pas persistés côté serveur : la suppression
+  // est purement locale (le code supabase était mort — les messages
+  // ne sont jamais insérés dans fixbot_conversations).
+  const handleDeleteConversation = () => {
     setMessages([]);
-    if (sessionId) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await supabase.from('fixbot_conversations').delete().eq('session_id', sessionId);
-      }
-    }
     localStorage.removeItem(SESSION_KEY);
     setSessionId('');
   };
