@@ -4,6 +4,7 @@ import { Search, ShoppingBag } from 'lucide-react';
 import supabase from '@/lib/supabase';
 import type { Product, ProductCategory } from '@/lib/types';
 import { sanitizeSearch } from '@/lib/format';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import ProductCard from '@/components/ProductCard';
 import Spinner from '@/components/Spinner';
 
@@ -21,10 +22,13 @@ export default function StorePage() {
   const [selectedCat, setSelectedCat] = useState<ProductCategory | ''>(searchParams.get('cat') as ProductCategory | '' || '');
   const [sortBy, setSortBy] = useState('rating');
 
+  // Débounce : la requête Supabase part 350 ms après la dernière frappe
+  const debouncedQuery = useDebouncedValue(query, 350);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const safeQuery = sanitizeSearch(query);
+      const safeQuery = sanitizeSearch(debouncedQuery);
       let q = supabase.from('products').select('*');
       if (selectedCat) q = q.eq('category', selectedCat);
       if (safeQuery) q = q.or(`name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
@@ -35,7 +39,7 @@ export default function StorePage() {
       setProducts(data as Product[] || []);
       setLoading(false);
     })();
-  }, [query, selectedCat, sortBy]);
+  }, [debouncedQuery, selectedCat, sortBy]);
 
   const categories: (ProductCategory | '')[] = ['', 'pieces', 'outils', 'kits'];
 
