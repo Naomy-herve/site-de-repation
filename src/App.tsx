@@ -6,6 +6,8 @@ import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import FixBotChat from '@/components/FixBotChat';
 import ScrollToTop from '@/components/ScrollToTop';
+import BootScreen from '@/components/BootScreen';
+import Marquee from '@/components/Marquee';
 import Spinner from '@/components/Spinner';
 
 // Code-splitting : chaque page est chargée à la demande (React.lazy).
@@ -33,6 +35,7 @@ export default function App() {
   return (
     <CartProvider>
       <BrowserRouter>
+        <BootScreen />
         <ScrollToTop />
         <Navbar />
         <Suspense fallback={<PageFallback />}>
@@ -55,6 +58,7 @@ export default function App() {
             <Route path="/confidentialite" element={<LegalPage type="privacy" />} />
           </Routes>
         </Suspense>
+        <Marquee />
         <Footer />
         <FixBotChat />
         <CookieConsent />
