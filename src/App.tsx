@@ -7,6 +7,7 @@ import CookieConsent from '@/components/CookieConsent';
 import FixBotChat from '@/components/FixBotChat';
 import ScrollToTop from '@/components/ScrollToTop';
 import BootScreen from '@/components/BootScreen';
+import ScrollProgress from '@/components/ScrollProgress';
 import Marquee from '@/components/Marquee';
 import Spinner from '@/components/Spinner';
 
@@ -36,6 +37,7 @@ export default function App() {
     <CartProvider>
       <BrowserRouter>
         <BootScreen />
+        <ScrollProgress />
         <ScrollToTop />
         <Navbar />
         <Suspense fallback={<PageFallback />}>
