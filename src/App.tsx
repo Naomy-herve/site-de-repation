@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
 import FixBotChat from '@/components/FixBotChat';
+import ScrollToTop from '@/components/ScrollToTop';
 import Spinner from '@/components/Spinner';
 
 // Code-splitting : chaque page est chargée à la demande (React.lazy).
@@ -32,6 +33,7 @@ export default function App() {
   return (
     <CartProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Navbar />
         <Suspense fallback={<PageFallback />}>
           <Routes>
