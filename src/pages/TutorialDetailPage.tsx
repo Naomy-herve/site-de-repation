@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ChevronRight, Wrench } from 'lucide-react';
 import supabase from '@/lib/supabase';
-import type { Tutorial, TutorialStep, CommunitySolution, Device, Category } from '@/lib/types';
+import type { Tutorial, TutorialStep, CommunitySolution } from '@/lib/types';
 import { difficultyColor, timeLabel, formatNumber } from '@/lib/format';
+import { useDocumentTitle } from '@/lib/useDocumentTitle';
 import Spinner from '@/components/Spinner';
-import { Clock, Eye, Users, CheckCircle2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Clock, Eye, CheckCircle2, ArrowLeft, AlertTriangle } from 'lucide-react';
 
 export default function TutorialDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,6 +15,9 @@ export default function TutorialDetailPage() {
   const [steps, setSteps] = useState<TutorialStep[]>([]);
   const [solutions, setSolutions] = useState<CommunitySolution[]>([]);
   const [activeStep, setActiveStep] = useState(0);
+
+  // SEO : titre d'onglet dynamique + incrémentation des vues
+  useDocumentTitle(tutorial?.title);
 
   useEffect(() => {
     (async () => {
@@ -33,6 +37,11 @@ export default function TutorialDetailPage() {
         ]);
         setSteps(stepsRes.data as TutorialStep[] || []);
         setSolutions(solRes.data as CommunitySolution[] || []);
+
+        // Compteur de vues (fire-and-forget : n'attend pas la réponse)
+        // RLS ne permet l'update qu'à l'auteur : l'erreur est silencieuse
+        // côté visiteur, le compteur reste géré par l'auteur/le serveur.
+        supabase.from('tutorials').update({ views: (tut.views || 0) + 1 }).eq('id', tut.id).then(() => undefined);
       }
       setLoading(false);
     })();
@@ -59,7 +68,7 @@ export default function TutorialDetailPage() {
       {/* Breadcrumb */}
       <div className="bg-white border-b border-slate-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
+          <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-xs text-slate-500 flex-wrap">
             <Link to="/" className="hover:text-primary-600">Accueil</Link>
             <ChevronRight className="w-3 h-3" />
             <Link to="/tutoriels" className="hover:text-primary-600">Tutoriels</Link>
@@ -96,9 +105,9 @@ export default function TutorialDetailPage() {
                 <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-primary-500" /> {steps.length} étapes</span>
               </div>
             </div>
-            <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-slate-100">
+            <div className="relative aspect-[16:10] rounded-2xl overflow-hidden bg-slate-100">
               {tutorial.image_url ? (
-                <img src={tutorial.image_url} alt={tutorial.title} className="w-full h-full object-cover" />
+                <img src={tutorial.image_url} alt={tutorial.title} className="w-full h-full object-cover" fetchPriority="high" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center"><Wrench className="w-16 h-16 text-slate-300" /></div>
               )}
@@ -152,6 +161,7 @@ export default function TutorialDetailPage() {
                   <button
                     key={step.id}
                     onClick={() => setActiveStep(i)}
+                    aria-current={activeStep === i ? 'step' : undefined}
                     className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all ${activeStep === i ? 'bg-primary-50 border border-primary-200' : 'hover:bg-slate-50 border border-transparent'}`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-colors ${activeStep === i ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
@@ -208,7 +218,7 @@ export default function TutorialDetailPage() {
                     >
                       <ArrowLeft className="w-4 h-4" /> Précédent
                     </button>
-                    <span className="text-sm text-slate-400">Étape {activeStep + 1} sur {steps.length}</span>
+                    <span className="text-sm text-slate-400" aria-live="polite">Étape {activeStep + 1} sur {steps.length}</span>
                     <button
                       onClick={() => setActiveStep(Math.min(steps.length - 1, activeStep + 1))}
                       disabled={activeStep === steps.length - 1}
