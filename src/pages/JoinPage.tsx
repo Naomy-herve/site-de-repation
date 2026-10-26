@@ -35,18 +35,25 @@ export default function JoinPage() {
           setLoading(false);
           return;
         }
+        // Le username est passé en métadonnées : le trigger SQL
+        // on_auth_user_created le récupère via raw_user_meta_data->>'username'
+        // pour créer la ligne profiles automatiquement.
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: { data: { username } },
         });
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          const { error: profErr } = await supabase.from('profiles').insert({
+          // Filet de sécurité : si le trigger SQL n'est pas encore installé,
+          // on crée le profil côté client. upsert + onConflict id : pas
+          // d'erreur de doublon si le trigger a déjà créé la ligne.
+          const { error: profErr } = await supabase.from('profiles').upsert({
             id: data.user.id,
             username,
             display_name: username,
-          });
+          }, { onConflict: 'id', ignoreDuplicates: true });
           if (profErr) {
             // Le compte auth existe mais le profil n'a pas été créé
             // (RLS, username dupliqué, etc.). On signale l'erreur et on
