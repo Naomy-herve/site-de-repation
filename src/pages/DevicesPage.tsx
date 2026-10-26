@@ -5,6 +5,7 @@ import supabase from '@/lib/supabase';
 import type { Device, Category } from '@/lib/types';
 import { sanitizeSearch } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import Reveal from '@/components/Reveal';
 import Spinner from '@/components/Spinner';
 
 export default function DevicesPage() {
@@ -59,8 +60,12 @@ export default function DevicesPage() {
 
   return (
     <div className="pt-16 min-h-screen bg-slate-50">
+      {/* En-tête page — bandeau style terminal */}
       <div className="bg-white border-b border-slate-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-primary-600 mb-2">
+            {'// '}CATALOGUE APPAREILS
+          </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">Appareils</h1>
           <p className="mt-2 text-slate-500">Trouvez votre appareil et accédez à tous les guides de réparation</p>
           <div className="mt-6 relative max-w-2xl">
@@ -105,24 +110,26 @@ export default function DevicesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {devices.map((d) => {
+            {devices.map((d, i) => {
               const count = tutorialCounts[d.id] || 0;
               return (
-                <Link key={d.id} to={`/tutoriels?cat=${d.category_id}`} className="card group flex items-center gap-4 p-4">
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
-                    {d.category?.image_url ? (
-                      <img src={d.category.image_url} alt={d.name} className="w-full h-full object-cover" loading="lazy" />
-                    ) : (
-                      <Wrench className="w-8 h-8 text-slate-300" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {d.manufacturer && <span className="text-xs text-slate-400 font-medium">{d.manufacturer}</span>}
-                    <h3 className="font-display font-semibold text-slate-900 text-base group-hover:text-primary-600 transition-colors truncate">{d.name}</h3>
-                    <p className="text-sm text-slate-500 mt-1">{count} tutoriel{count > 1 ? 's' : ''}</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all shrink-0" />
-                </Link>
+                <Reveal key={d.id} delay={Math.min(i * 60, 480)}>
+                  <Link to={`/tutoriels?cat=${d.category_id}`} className="card group flex items-center gap-4 p-4">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
+                      {d.category?.image_url ? (
+                        <img src={d.category.image_url} alt={d.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <Wrench className="w-8 h-8 text-slate-300" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {d.manufacturer && <span className="font-mono text-[11px] text-slate-400 uppercase tracking-wide">{d.manufacturer}</span>}
+                      <h3 className="font-display font-semibold text-slate-900 text-base group-hover:text-primary-600 transition-colors truncate">{d.name}</h3>
+                      <p className="text-sm text-slate-500 mt-1">{count} tutoriel{count > 1 ? 's' : ''}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                </Reveal>
               );
             })}
           </div>
