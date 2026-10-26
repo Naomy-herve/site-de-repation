@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Polices chargées via <link> dans index.html (preconnect + display=swap)
+   — un @import CSS en tête de fichier bloque le rendu (render-blocking). */
 
 @layer base {
   html {
@@ -15,6 +16,17 @@
   }
   h1, h2, h3, h4 {
     @apply font-display;
+  }
+  /* Accessibilité : réduit les animations pour les utilisateurs sensibles */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
@@ -33,6 +45,14 @@
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  /* Focus visible cohérent pour l'accessibilité clavier */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-primary-400 ring-offset-2;
   }
 }
 
