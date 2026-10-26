@@ -65,7 +65,7 @@ export default function ProductDetailPage() {
     <div className="pt-16 min-h-screen bg-slate-50">
       <div className="bg-white border-b border-slate-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
-          <nav className="flex items-center gap-1.5 text-xs text-slate-500">
+          <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-xs text-slate-500">
             <Link to="/" className="hover:text-primary-600">Accueil</Link>
             <ChevronRight className="w-3 h-3" />
             <Link to="/boutique" className="hover:text-primary-600">Boutique</Link>
@@ -81,7 +81,7 @@ export default function ProductDetailPage() {
           <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden">
             <div className="aspect-square overflow-hidden bg-slate-100">
               {product.image_url && (
-                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" fetchPriority="high" />
               )}
             </div>
           </div>
@@ -91,9 +91,9 @@ export default function ProductDetailPage() {
             <span className="badge bg-primary-50 text-primary-700">{categoryLabels[product.category]}</span>
             <h1 className="mt-3 font-display text-3xl font-bold text-slate-900 leading-tight">{product.name}</h1>
             <div className="mt-3 flex items-center gap-3">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" aria-label={`Note ${product.rating.toFixed(1)} sur 5`}>
                 {[1,2,3,4,5].map((i) => (
-                  <Star key={i} className={`w-4 h-4 ${i <= Math.round(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
+                  <Star key={i} className={`w-4 h-4 ${i <= Math.round(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} aria-hidden="true" />
                 ))}
               </div>
               <span className="text-sm font-semibold text-slate-700">{product.rating.toFixed(1)}</span>
@@ -116,11 +116,19 @@ export default function ProductDetailPage() {
             {/* Quantity + Add to cart */}
             <div className="mt-6 flex items-center gap-3">
               <div className="flex items-center rounded-full border border-slate-200 bg-white">
-                <button onClick={() => setQty(Math.max(1, qty - 1))} className="p-3 text-slate-400 hover:text-primary-600 transition-colors">
+                <button
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  className="p-3 text-slate-400 hover:text-primary-600 transition-colors"
+                  aria-label="Diminuer la quantité"
+                >
                   <Minus className="w-4 h-4" />
                 </button>
-                <span className="px-3 text-sm font-semibold text-slate-700 min-w-[2rem] text-center">{qty}</span>
-                <button onClick={() => setQty(qty + 1)} className="p-3 text-slate-400 hover:text-primary-600 transition-colors">
+                <span className="px-3 text-sm font-semibold text-slate-700 min-w-[2rem] text-center" aria-live="polite">{qty}</span>
+                <button
+                  onClick={() => setQty(qty + 1)}
+                  className="p-3 text-slate-400 hover:text-primary-600 transition-colors"
+                  aria-label="Augmenter la quantité"
+                >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
@@ -147,7 +155,7 @@ export default function ProductDetailPage() {
                 const Icon = b.icon;
                 return (
                   <div key={i} className="flex flex-col items-center text-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <Icon className="w-5 h-5 text-primary-500" />
+                    <Icon className="w-5 h-5 text-primary-500" aria-hidden="true" />
                     <span className="text-xs font-medium text-slate-600">{b.label}</span>
                   </div>
                 );
