@@ -10,7 +10,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
+  build: {
+    // Avertissement si un chunk dépasse 500 Ko
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        // Sépare les grosses dépendances : meilleur caching navigateur
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
   },
 });
