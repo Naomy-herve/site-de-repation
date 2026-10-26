@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Wrench, Mail, Lock, User, ArrowRight, CheckCircle2, Users, BookOpen, Award } from 'lucide-react';
 import supabase from '@/lib/supabase';
 
 export default function JoinPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'signup' | 'login'>('signup');
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<'signup' | 'login'>(
+    searchParams.get('mode') === 'login' ? 'login' : 'signup'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -46,9 +49,12 @@ export default function JoinPage() {
           });
           if (profErr) {
             // Le compte auth existe mais le profil n'a pas été créé
-            // (RLS, username dupliqué, etc.) : ne pas le cacher.
+            // (RLS, username dupliqué, etc.). On signale l'erreur et on
+            // nettoie la session pour éviter un état incohérent.
+            console.error('Création du profil échouée :', profErr.message);
+            await supabase.auth.signOut();
             throw new Error(
-              'Compte créé, mais la création du profil a échoué : ' + profErr.message
+              'Compte créé, mais la création du profil a échoué (' + profErr.message + '). Réessayez ou contactez le support.'
             );
           }
         }
