@@ -4,6 +4,7 @@ import { Search, ChevronRight, Wrench } from 'lucide-react';
 import supabase from '@/lib/supabase';
 import type { Device, Category } from '@/lib/types';
 import { sanitizeSearch } from '@/lib/format';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import Spinner from '@/components/Spinner';
 
 export default function DevicesPage() {
@@ -15,6 +16,9 @@ export default function DevicesPage() {
   const [tutorialCounts, setTutorialCounts] = useState<Record<string, number>>({});
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState('');
+
+  // Débounce : la requête Supabase part 350 ms après la dernière frappe
+  const debouncedQuery = useDebouncedValue(query, 350);
 
   useEffect(() => {
     (async () => {
@@ -33,7 +37,7 @@ export default function DevicesPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const safeQuery = sanitizeSearch(query);
+      const safeQuery = sanitizeSearch(debouncedQuery);
       let q = supabase.from('devices').select('*, category:categories(*)');
       if (activeCat) q = q.eq('category_id', activeCat);
       if (safeQuery) q = q.or(`name.ilike.%${safeQuery}%,manufacturer.ilike.%${safeQuery}%`);
@@ -51,7 +55,7 @@ export default function DevicesPage() {
       setTutorialCounts(counts);
       setLoading(false);
     })();
-  }, [activeCat, query]);
+  }, [activeCat, debouncedQuery]);
 
   return (
     <div className="pt-16 min-h-screen bg-slate-50">
