@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wrench, BookOpen, Users, Award, LogOut, User as UserIcon, Edit3, ThumbsUp } from 'lucide-react';
+import { Wrench, BookOpen, Users, Award, LogOut, User as UserIcon, Edit3, ThumbsUp, AlertTriangle } from 'lucide-react';
 import supabase from '@/lib/supabase';
 import type { Tutorial, CommunitySolution } from '@/lib/types';
 import { formatDate, formatNumber } from '@/lib/format';
@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileError, setProfileError] = useState('');
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [solutions, setSolutions] = useState<CommunitySolution[]>([]);
   const [editing, setEditing] = useState(false);
@@ -29,15 +30,47 @@ export default function ProfilePage() {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate('/join');
+        navigate('/join?mode=login');
         return;
       }
-      const { data: prof } = await supabase
+
+      let prof = null as Profile | null;
+      const { data: existing, error: profErr } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle();
-      setProfile(prof as Profile | null);
+      if (profErr) {
+        setProfileError('Impossible de charger votre profil : ' + profErr.message);
+        setLoading(false);
+        return;
+      }
+      prof = existing as Profile | null;
+
+      // Profil manquant (ex. signup dont l'insert a échoué) : on tente de
+      // le créer automatiquement depuis l'email, au lieu de renvoyer vers
+      // /join — ce qui créait une boucle /join <-> /profil (JoinPage
+      // redirige aussi vers /profil si une session existe).
+      if (!prof) {
+        const emailPrefix = (session.user.email || 'reparateur').split('@')[0].replace(/[^a-z0-9_-]/gi, '') || 'reparateur';
+        const { data: created, error: createErr } = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            username: `${emailPrefix}_${session.user.id.slice(0, 6)}`,
+            display_name: emailPrefix,
+          })
+          .select()
+          .maybeSingle();
+        if (createErr) {
+          setProfileError('Votre profil n\'a pas pu être créé : ' + createErr.message);
+          setLoading(false);
+          return;
+        }
+        prof = created as Profile | null;
+      }
+
+      setProfile(prof);
       setDisplayName(prof?.display_name || prof?.username || '');
       setBio(prof?.bio || '');
 
@@ -50,12 +83,6 @@ export default function ProfilePage() {
       setLoading(false);
     })();
   }, [navigate]);
-
-  // Redirection hors du rendu : navigate() pendant le rendu déclenche
-  // l'erreur React « Cannot update a component while rendering ».
-  useEffect(() => {
-    if (!loading && !profile) navigate('/join');
-  }, [loading, profile, navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -70,6 +97,21 @@ export default function ProfilePage() {
   };
 
   if (loading) return <div className="pt-16"><Spinner label="Chargement du profil..." /></div>;
+
+  if (profileError) {
+    return (
+      <div className="pt-16 min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-8 max-w-md text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <h1 className="font-display text-xl font-bold text-slate-900">Profil indisponible</h1>
+          <p className="mt-2 text-sm text-slate-500">{profileError}</p>
+          <button onClick={handleLogout} className="mt-5 btn-primary">
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!profile) return null;
 
