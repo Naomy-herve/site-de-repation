@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, ThumbsUp, Search, ArrowRight } from 'lucide-react';
 import supabase from '@/lib/supabase';
-import type { CommunitySolution, Device } from '@/lib/types';
+import type { CommunitySolution } from '@/lib/types';
 import { formatNumber } from '@/lib/format';
 import Spinner from '@/components/Spinner';
 
@@ -69,7 +69,11 @@ export default function CommunityPage() {
               <div key={s.id} className="card p-5 group">
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center shrink-0">
-                    <button className="flex flex-col items-center gap-1 text-slate-400 hover:text-primary-600 transition-colors">
+                    <button
+                      disabled
+                      title="Le vote nécessitera une connexion (bientôt disponible)"
+                      className="flex flex-col items-center gap-1 text-slate-400 transition-colors cursor-not-allowed"
+                    >
                       <ThumbsUp className="w-5 h-5" />
                       <span className="text-sm font-bold text-slate-700">{s.upvotes}</span>
                     </button>
