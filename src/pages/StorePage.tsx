@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, ShoppingBag } from 'lucide-react';
 import supabase from '@/lib/supabase';
 import type { Product, ProductCategory } from '@/lib/types';
+import { sanitizeSearch } from '@/lib/format';
 import ProductCard from '@/components/ProductCard';
 import Spinner from '@/components/Spinner';
 
@@ -23,9 +24,10 @@ export default function StorePage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      const safeQuery = sanitizeSearch(query);
       let q = supabase.from('products').select('*');
       if (selectedCat) q = q.eq('category', selectedCat);
-      if (query) q = q.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+      if (safeQuery) q = q.or(`name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`);
       if (sortBy === 'rating') q = q.order('rating', { ascending: false });
       else if (sortBy === 'price_asc') q = q.order('price', { ascending: true });
       else if (sortBy === 'price_desc') q = q.order('price', { ascending: false });
