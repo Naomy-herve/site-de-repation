@@ -39,11 +39,18 @@ export default function JoinPage() {
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          await supabase.from('profiles').insert({
+          const { error: profErr } = await supabase.from('profiles').insert({
             id: data.user.id,
             username,
             display_name: username,
           });
+          if (profErr) {
+            // Le compte auth existe mais le profil n'a pas été créé
+            // (RLS, username dupliqué, etc.) : ne pas le cacher.
+            throw new Error(
+              'Compte créé, mais la création du profil a échoué : ' + profErr.message
+            );
+          }
         }
         setSuccess('Compte créé avec succès ! Vous pouvez maintenant vous connecter.');
         setMode('login');
