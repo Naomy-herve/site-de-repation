@@ -5,6 +5,7 @@ import supabase from '@/lib/supabase';
 import type { Product, ProductCategory } from '@/lib/types';
 import { sanitizeSearch } from '@/lib/format';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
+import Reveal from '@/components/Reveal';
 import ProductCard from '@/components/ProductCard';
 import Spinner from '@/components/Spinner';
 
@@ -47,6 +48,9 @@ export default function StorePage() {
     <div className="pt-16 min-h-screen bg-slate-50">
       <div className="bg-white border-b border-slate-100">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-primary-600 mb-2">
+            {'// '}BOUTIQUE — PIÈCES & OUTILS
+          </p>
           <h1 className="font-display text-3xl font-bold text-slate-900">Boutique</h1>
           <p className="mt-2 text-slate-500">Pièces détachées, outils et kits pour toutes vos réparations</p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -98,8 +102,10 @@ export default function StorePage() {
           <>
             <p className="text-sm text-slate-500 mb-4">{products.length} produit{products.length > 1 ? 's' : ''}</p>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-              {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
+              {products.map((p, i) => (
+                <Reveal key={p.id} delay={Math.min(i * 50, 400)}>
+                  <ProductCard product={p} />
+                </Reveal>
               ))}
             </div>
           </>
