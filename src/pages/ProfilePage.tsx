@@ -51,6 +51,12 @@ export default function ProfilePage() {
     })();
   }, [navigate]);
 
+  // Redirection hors du rendu : navigate() pendant le rendu déclenche
+  // l'erreur React « Cannot update a component while rendering ».
+  useEffect(() => {
+    if (!loading && !profile) navigate('/join');
+  }, [loading, profile, navigate]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
@@ -65,10 +71,7 @@ export default function ProfilePage() {
 
   if (loading) return <div className="pt-16"><Spinner label="Chargement du profil..." /></div>;
 
-  if (!profile) {
-    navigate('/join');
-    return null;
-  }
+  if (!profile) return null;
 
   const stats = [
     { icon: BookOpen, label: 'Tutoriels', value: tutorials.length },
