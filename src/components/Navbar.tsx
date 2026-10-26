@@ -1,16 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Wrench, ShoppingBag, BookOpen, Users, Newspaper } from 'lucide-react';
+import { Search, Menu, X, Wrench, ShoppingBag, BookOpen, Users, Newspaper, User as UserIcon } from 'lucide-react';
 import { useCart } from '@/lib/cart';
+import supabase from '@/lib/supabase';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { totalCount: cartCount } = useCart();
+
+  // État de connexion : met à jour la Navbar en temps réel
+  // (login, logout, chargement de page avec session existante)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setLoggedIn(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     setOpen(false);
@@ -19,7 +33,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
@@ -61,6 +75,7 @@ export default function Navbar() {
                 <Link
                   key={link.to}
                   to={link.to}
+                  aria-current={active ? 'page' : undefined}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${active ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:text-primary-600 hover:bg-slate-50'}`}
                 >
                   <Icon className="w-4 h-4" />
@@ -75,24 +90,32 @@ export default function Navbar() {
               onClick={() => setShowSearch(!showSearch)}
               className="p-2 rounded-full hover:bg-slate-100 transition-colors"
               aria-label="Rechercher"
+              aria-expanded={showSearch}
             >
               <Search className="w-5 h-5 text-slate-600" />
             </button>
-            <Link to="/panier" className="relative p-2 rounded-full hover:bg-slate-100 transition-colors" aria-label="Panier">
+            <Link to="/panier" className="relative p-2 rounded-full hover:bg-slate-100 transition-colors" aria-label={`Panier, ${cartCount} article${cartCount > 1 ? 's' : ''}`}>
               <ShoppingBag className="w-5 h-5 text-slate-600" />
               {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-accent-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[1.25rem] h-5 px-1 rounded-full bg-accent-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
             </Link>
-            <Link to="/join" className="hidden sm:inline-flex btn-primary text-sm py-2 px-4">
-              Rejoindre
-            </Link>
+            {loggedIn ? (
+              <Link to="/profil" className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-slate-100 hover:bg-slate-200 py-2 px-4 text-sm font-semibold text-slate-700 transition-colors" aria-label="Mon profil">
+                <UserIcon className="w-4 h-4" /> Profil
+              </Link>
+            ) : (
+              <Link to="/join" className="hidden sm:inline-flex btn-primary text-sm py-2 px-4">
+                Rejoindre
+              </Link>
+            )}
             <button
               onClick={() => setOpen(!open)}
               className="lg:hidden p-2 rounded-full hover:bg-slate-100 transition-colors"
               aria-label="Menu"
+              aria-expanded={open}
             >
               {open ? <X className="w-5 h-5 text-slate-600" /> : <Menu className="w-5 h-5 text-slate-600" />}
             </button>
@@ -101,7 +124,7 @@ export default function Navbar() {
 
         {showSearch && (
           <div className="pb-3 animate-fade-in">
-            <form onSubmit={handleSearch} className="relative">
+            <form onSubmit={handleSearch} className="relative" role="search">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
@@ -131,9 +154,15 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              <Link to="/join" className="flex items-center justify-center btn-primary w-full mt-2">
-                Rejoindre la communauté
-              </Link>
+              {loggedIn ? (
+                <Link to="/profil" className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700 transition-all">
+                  <UserIcon className="w-5 h-5 text-slate-400" /> Mon profil
+                </Link>
+              ) : (
+                <Link to="/join" className="flex items-center justify-center btn-primary w-full mt-2">
+                  Rejoindre la communauté
+                </Link>
+              )}
             </div>
           </div>
         )}
